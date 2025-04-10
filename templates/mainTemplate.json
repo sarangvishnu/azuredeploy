@@ -96,11 +96,11 @@
             },
             "resources": [
                 {
-                    "type": "Microsoft.Web/sites/virtualNetworkConnections",
+                    "type": "virtualNetworkConnections",
                     "apiVersion": "2020-12-01",
-                    "name": "[variables('vnetName')]",
+                    "name": "vnet-integration",
                     "dependsOn": [
-                        "[resourceId('Microsoft.Web/sites', variables('appServiceName'))]"
+                        "[concat('Microsoft.Web/sites/', variables('appServiceName'))]"
                     ],
                     "properties": {
                         "vnetResourceId": "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]",
