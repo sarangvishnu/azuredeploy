@@ -13,7 +13,7 @@ This repository contains ARM templates and deployment scripts for provisioning A
 
 ### 1. Deploy to Azure Button
 
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fsarangvishnu%2Fazuredeploy%2Fblob%2%2Fmain%2Ftemplates%2FmainTemplate.json)
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fsarangvishnu%2Fazuredeploy%2Fmain%2Ftemplates%2FmainTemplate.json)
 
 ### 2. GitHub Actions
 
