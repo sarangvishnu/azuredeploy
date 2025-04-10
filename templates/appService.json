@@ -3,20 +3,42 @@
     "contentVersion": "1.0.0.0",
     "parameters": {
         "appServicePlanName": {
-            "type": "string"
+            "type": "string",
+            "metadata": {
+                "description": "Name of the App Service Plan"
+            }
         },
         "appServiceName": {
-            "type": "string"
+            "type": "string",
+            "metadata": {
+                "description": "Name of the App Service"
+            }
         },
         "location": {
-            "type": "string"
+            "type": "string",
+            "metadata": {
+                "description": "Location for all resources."
+            }
         },
         "vnetName": {
-            "type": "string"
+            "type": "string",
+            "metadata": {
+                "description": "Name of the Virtual Network"
+            }
         },
         "environment": {
             "type": "string",
-            "allowedValues": ["dev", "prod"]
+            "allowedValues": ["dev", "prod"],
+            "metadata": {
+                "description": "Environment type"
+            }
+        },
+        "vnetResourceGroup": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().name]",
+            "metadata": {
+                "description": "Resource group containing the VNET"
+            }
         }
     },
     "variables": {
@@ -24,36 +46,34 @@
             "dev": "B1",
             "prod": "P1v2"
         },
-        "appServicePlanWorkerSize": {
-            "dev": 0,
-            "prod": 1
-        },
-        "isProduction": "[equals(parameters('environment'), 'prod')]"
+        "subnetName": "app-subnet",
+        "vnetIntegrationName": "[concat(parameters('appServiceName'), '/', parameters('vnetName'), '-integration')]"
     },
     "resources": [
         {
             "type": "Microsoft.Web/serverfarms",
-            "apiVersion": "2020-12-01",
+            "apiVersion": "2022-03-01",
             "name": "[parameters('appServicePlanName')]",
             "location": "[parameters('location')]",
             "sku": {
                 "name": "[variables('appServicePlanSku')[parameters('environment')]]",
                 "tier": "[variables('appServicePlanSku')[parameters('environment')]]",
                 "size": "[variables('appServicePlanSku')[parameters('environment')]]",
-                "family": "[if(variables('isProduction'), 'P', 'B')]",
-                "capacity": "[variables('appServicePlanWorkerSize')[parameters('environment')]]"
+                "family": "[if(equals(parameters('environment'), 'prod'), 'P', 'B')]",
+                "capacity": 1
             },
             "kind": "linux",
             "properties": {
                 "perSiteScaling": false,
                 "reserved": true,
                 "targetWorkerCount": 0,
-                "targetWorkerSizeId": 0
+                "targetWorkerSizeId": 0,
+                "zoneRedundant": "[if(equals(parameters('environment'), 'prod', true, false)]"
             }
         },
         {
             "type": "Microsoft.Web/sites",
-            "apiVersion": "2020-12-01",
+            "apiVersion": "2022-03-01",
             "name": "[parameters('appServiceName')]",
             "location": "[parameters('location')]",
             "kind": "app,linux",
@@ -63,27 +83,53 @@
             "properties": {
                 "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]",
                 "siteConfig": {
-                    "linuxFxVersion": "DOTNETCORE|5.0",
+                    "linuxFxVersion": "DOTNETCORE|6.0",
                     "minTlsVersion": "1.2",
                     "ftpsState": "FtpsOnly",
-                    "alwaysOn": "[variables('isProduction')]",
-                    "vnetRouteAllEnabled": true
+                    "alwaysOn": "[if(equals(parameters('environment'), 'prod', true, false)]",
+                    "vnetRouteAllEnabled": true,
+                    "ipSecurityRestrictions": [
+                        {
+                            "name": "AllowVNetTraffic",
+                            "action": "Allow",
+                            "priority": 100,
+                            "ipAddress": "10.0.0.0/16",
+                            "description": "Allow traffic from VNET"
+                        },
+                        {
+                            "name": "DenyAll",
+                            "action": "Deny",
+                            "priority": 2147483647,
+                            "ipAddress": "0.0.0.0/0",
+                            "description": "Deny all other traffic"
+                        }
+                    ]
                 },
-                "httpsOnly": true
+                "httpsOnly": true,
+                "virtualNetworkSubnetId": "[resourceId(parameters('vnetResourceGroup'), 'Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), variables('subnetName'))]"
             }
         },
         {
-            "type": "Microsoft.Web/sites/virtualNetworkConnections",
-            "apiVersion": "2020-12-01",
-            "name": "[concat(parameters('appServiceName'), '/', parameters('vnetName'))]",
-            "location": "[parameters('location')]",
+            "type": "Microsoft.Web/sites/networkConfig",
+            "apiVersion": "2022-03-01",
+            "name": "[concat(parameters('appServiceName'), '/virtualNetwork')]",
             "dependsOn": [
-                "[resourceId('Microsoft.Web/sites', parameters('appServiceName'))]",
-                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+                "[resourceId('Microsoft.Web/sites', parameters('appServiceName'))]"
             ],
             "properties": {
-                "vnetResourceId": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+                "subnetResourceId": "[resourceId(parameters('vnetResourceGroup'), 'Microsoft.Network/virtualNetworks/subnets', parameters('vnetName'), variables('subnetName'))]",
+                "swiftSupported": true
             }
         }
-    ]
+    ],
+    "outputs": {
+        "appServiceHostname": {
+            "type": "string",
+            "value": "[concat(parameters('appServiceName'), '.azurewebsites.net')]"
+        },
+        "appServiceVnetIntegration": {
+            "type": "string",
+            "value": "[reference(resourceId('Microsoft.Web/sites/networkConfig', parameters('appServiceName'), 'virtualNetwork')).properties.subnetResourceId]"
+        }
+    }
 }
