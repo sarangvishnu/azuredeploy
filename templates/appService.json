@@ -68,7 +68,7 @@
                 "reserved": true,
                 "targetWorkerCount": 0,
                 "targetWorkerSizeId": 0,
-                "zoneRedundant": "[if(equals(parameters('environment'), 'prod', true, false)]"
+                "zoneRedundant": "[if(equals(parameters('environment'), 'prod'), bool('true'), bool('false')]"
             }
         },
         {
