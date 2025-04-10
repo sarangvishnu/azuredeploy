@@ -64,7 +64,7 @@
                     "linuxFxVersion": "DOTNETCORE|5.0",
                     "minTlsVersion": "1.2",
                     "ftpsState": "FtpsOnly",
-                    "alwaysOn": "[if(equals(parameters('environment'), 'prod'), true, false]",
+                    "alwaysOn": "[if(equals(parameters('environment'), 'prod'), bool('true'), bool('false')]",
                     "vnetRouteAllEnabled": true
                 },
                 "httpsOnly": true
