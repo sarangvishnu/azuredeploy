@@ -59,7 +59,7 @@
                 "name": "[variables('appServicePlanSku')[parameters('environment')]]",
                 "tier": "[variables('appServicePlanSku')[parameters('environment')]]",
                 "size": "[variables('appServicePlanSku')[parameters('environment')]]",
-                "family": "[if(equals(parameters('environment'), 'prod'), 'P', 'B')]",
+                "family": "[if(equals(parameters('environment'), 'prod', 'P', 'B')]",
                 "capacity": 1
             },
             "kind": "linux",
@@ -68,7 +68,7 @@
                 "reserved": true,
                 "targetWorkerCount": 0,
                 "targetWorkerSizeId": 0,
-                "zoneRedundant": "[if(equals(parameters('environment'), 'prod'), bool('true'), bool('false')]"
+                "zoneRedundant": "[if(equals(parameters('environment'), 'prod', true, false)]"
             }
         },
         {
