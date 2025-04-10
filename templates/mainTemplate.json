@@ -21,93 +21,68 @@
     "variables": {
         "namingPrefix": "[concat('fioneer-', parameters('environment'))]",
         "vnetName": "[concat(variables('namingPrefix'), '-vnet')]",
-        "subnetName": "app-subnet",
         "appServicePlanName": "[concat(variables('namingPrefix'), '-asp')]",
-        "appServiceName": "[concat(variables('namingPrefix'), '-app')]"
+        "appServiceName": "[concat(variables('namingPrefix'), '-app')]",
+        "storageAccountName": "[concat(replace(variables('namingPrefix'), '-', ''), 'st')]"
     },
     "resources": [
         {
-            "type": "Microsoft.Network/virtualNetworks",
-            "apiVersion": "2020-11-01",
-            "name": "[variables('vnetName')]",
-            "location": "[parameters('location')]",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2020-10-01",
+            "name": "networkDeployment",
             "properties": {
-                "addressSpace": {
-                    "addressPrefixes": [
-                        "10.0.0.0/16"
-                    ]
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "https://raw.githubusercontent.com/sarangvishnu/azuredeploy/main/templates/network.json",
+                    "contentVersion": "1.0.0.0"
                 },
-                "subnets": [
-                    {
-                        "name": "[variables('subnetName')]",
-                        "properties": {
-                            "addressPrefix": "10.0.1.0/24",
-                            "delegations": [
-                                {
-                                    "name": "app-service-delegation",
-                                    "properties": {
-                                        "serviceName": "Microsoft.Web/serverFarms"
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                ]
-            }
-        },
-        {
-            "type": "Microsoft.Web/serverfarms",
-            "apiVersion": "2020-12-01",
-            "name": "[variables('appServicePlanName')]",
-            "location": "[parameters('location')]",
-            "sku": {
-                "name": "[if(equals(parameters('environment'), 'prod'), 'P1v2', 'B1')]",
-                "tier": "[if(equals(parameters('environment'), 'prod'), 'PremiumV2', 'Basic')]",
-                "size": "[if(equals(parameters('environment'), 'prod'), 'P1v2', 'B1')]",
-                "family": "[if(equals(parameters('environment'), 'prod'), 'P', 'B')]",
-                "capacity": "[if(equals(parameters('environment'), 'prod'), 1, 0)]"
-            },
-            "kind": "linux",
-            "properties": {
-                "perSiteScaling": false,
-                "reserved": true
-            }
-        },
-        {
-            "type": "Microsoft.Web/sites",
-            "apiVersion": "2020-12-01",
-            "name": "[variables('appServiceName')]",
-            "location": "[parameters('location')]",
-            "kind": "app,linux",
-            "dependsOn": [
-                "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]",
-                "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
-            ],
-            "properties": {
-                "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]",
-                "siteConfig": {
-                    "linuxFxVersion": "DOTNETCORE|5.0",
-                    "minTlsVersion": "1.2",
-                    "ftpsState": "FtpsOnly",
-                    "alwaysOn": "[equals(parameters('environment'), 'prod')]",
-                    "vnetRouteAllEnabled": true
-                },
-                "httpsOnly": true
-            },
-            "resources": [
-                {
-                    "type": "virtualNetworkConnections",
-                    "apiVersion": "2020-12-01",
-                    "name": "vnet-integration",
-                    "dependsOn": [
-                        "[concat('Microsoft.Web/sites/', variables('appServiceName'))]"
-                    ],
-                    "properties": {
-                        "vnetResourceId": "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]",
-                        "isSwift": true
+                "parameters": {
+                    "vnetName": {
+                        "value": "[variables('vnetName')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "environment": {
+                        "value": "[parameters('environment')]"
                     }
                 }
-            ]
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2020-10-01",
+            "name": "appServiceDeployment",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'networkDeployment')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "https://raw.githubusercontent.com/sarangvishnu/azuredeploy/main/templates/appService.json",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "appServicePlanName": {
+                        "value": "[variables('appServicePlanName')]"
+                    },
+                    "appServiceName": {
+                        "value": "[variables('appServiceName')]"
+                    },
+                    "location": {
+                        "value": "[parameters('location')]"
+                    },
+                    "vnetName": {
+                        "value": "[variables('vnetName')]"
+                    },
+                    "environment": {
+                        "value": "[parameters('environment')]"
+                    },
+                    "vnetResourceGroup": {
+                        "value": "[resourceGroup().name]"
+                    }
+                }
+            }
         }
     ],
     "outputs": {
