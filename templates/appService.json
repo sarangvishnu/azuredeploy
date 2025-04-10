@@ -129,7 +129,7 @@
         },
         "appServiceVnetIntegration": {
             "type": "string",
-            "value": "[reference(resourceId('Microsoft.Web/sites/networkConfig', parameters('appServiceName'), 'virtualNetwork')).properties.subnetResourceId]"
+            "value": "[reference(resourceId('Microsoft.Web/sites/networkConfig', parameters('appServiceName'), 'virtualNetwork')).subnetResourceId]"
         }
     }
 }
