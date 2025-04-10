@@ -100,7 +100,7 @@
                         }
                     }
                 ],
-                "enableDdosProtection": "[if(equals(parameters('environment'), 'prod'), bool('true'), bool('false')]"
+                "enableDdosProtection": "[if(equals(parameters('environment'), 'prod', true, false)]"
             }
         }
     ],
